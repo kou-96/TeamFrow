@@ -118,6 +118,9 @@ create index tasks_project_idx on public.tasks(project_id);
 create index tasks_status_idx on public.tasks(project_id, status, position);
 create index tasks_assignee_idx on public.tasks(assignee_id);
 
+-- DELETE event の filter (project_id) を評価できるよう OLD 行に全カラム残す
+alter table public.tasks replica identity full;
+
 -- ============================================================
 -- labels (ワークスペーススコープ)
 -- ============================================================

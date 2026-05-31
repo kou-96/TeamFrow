@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslations } from "next-intl";
-import { Check, Plus, Trash2, X, UserRound } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, X, UserRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -231,52 +231,14 @@ export function TaskDetailModal({
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t("assignee")}
               </h3>
-              <details className="group">
-                <summary className="list-none flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm cursor-pointer hover:bg-accent">
-                  {assignee ? (
-                    <>
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
-                        {initial}
-                      </span>
-                      <span className="flex-1 truncate">{assignee.display_name ?? "(unknown)"}</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserRound className="h-4 w-4 text-muted-foreground" />
-                      <span className="flex-1 text-muted-foreground">{t("noAssignee")}</span>
-                    </>
-                  )}
-                </summary>
-                <div className="mt-1 rounded-md border bg-card shadow-sm overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => pickAssignee(null)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent text-muted-foreground"
-                  >
-                    <X className="h-4 w-4" /> {t("unassign")}
-                  </button>
-                  {members.map((m) => {
-                    const active = m.user_id === task.assignee_id;
-                    return (
-                      <button
-                        key={m.user_id}
-                        type="button"
-                        onClick={() => pickAssignee(m.user_id)}
-                        className={cn(
-                          "w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent",
-                          active && "bg-accent/50"
-                        )}
-                      >
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-medium">
-                          {(m.display_name ?? "?").slice(0, 1).toUpperCase()}
-                        </span>
-                        <span className="flex-1 truncate">{m.display_name ?? "(unknown)"}</span>
-                        {active && <Check className="h-4 w-4 text-primary" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </details>
+              <AssigneePicker
+                assignee={assignee}
+                assigneeId={task.assignee_id}
+                members={members}
+                noAssigneeLabel={t("noAssignee")}
+                unassignLabel={t("unassign")}
+                onPick={pickAssignee}
+              />
             </div>
 
             {/* 期限 */}
@@ -349,5 +311,108 @@ export function TaskDetailModal({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AssigneePicker({
+  assignee,
+  assigneeId,
+  members,
+  noAssigneeLabel,
+  unassignLabel,
+  onPick,
+}: {
+  assignee: Member | null;
+  assigneeId: string | null;
+  members: Member[];
+  noAssigneeLabel: string;
+  unassignLabel: string;
+  onPick: (userId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, []);
+
+  function pick(userId: string | null) {
+    onPick(userId);
+    setOpen(false);
+  }
+
+  const initial = assignee?.display_name?.slice(0, 1).toUpperCase() ?? "?";
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm hover:bg-accent"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {assignee ? (
+          <>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
+              {initial}
+            </span>
+            <span className="flex-1 truncate text-left">
+              {assignee.display_name ?? "(unknown)"}
+            </span>
+          </>
+        ) : (
+          <>
+            <UserRound className="h-4 w-4 text-muted-foreground" />
+            <span className="flex-1 text-left text-muted-foreground">{noAssigneeLabel}</span>
+          </>
+        )}
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 mt-1 rounded-md border bg-popover shadow-md overflow-hidden z-10">
+          <button
+            type="button"
+            onClick={() => pick(null)}
+            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent text-muted-foreground"
+          >
+            <X className="h-4 w-4" /> {unassignLabel}
+          </button>
+          {members.map((m) => {
+            const active = m.user_id === assigneeId;
+            return (
+              <button
+                key={m.user_id}
+                type="button"
+                onClick={() => pick(m.user_id)}
+                className={cn(
+                  "w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent",
+                  active && "bg-accent/50"
+                )}
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+                  {(m.display_name ?? "?").slice(0, 1).toUpperCase()}
+                </span>
+                <span className="flex-1 truncate text-left">
+                  {m.display_name ?? "(unknown)"}
+                </span>
+                {active && <Check className="h-4 w-4 text-primary" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

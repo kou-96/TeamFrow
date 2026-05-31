@@ -349,6 +349,19 @@ export function Board({
     [openTaskId, tasks]
   );
 
+  // `commentsMap[id] ?? []` だと毎レンダー新しい [] が作られ、CommentsSection の
+  // useEffect([initialComments]) が誤発火して realtime で受信した state が初期化される。
+  // 安定した空配列を使い、再レンダーでも props 参照が変わらないようにする。
+  const stableEmptyComments = useRef<CommentEntry[]>([]).current;
+  const openTaskComments = useMemo(() => {
+    if (!openTaskId) return stableEmptyComments;
+    return commentsMap[openTaskId] ?? stableEmptyComments;
+  }, [openTaskId, commentsMap, stableEmptyComments]);
+  const openTaskLabelIds = useMemo(() => {
+    if (!openTaskId) return [];
+    return taskLabelMap[openTaskId] ?? [];
+  }, [openTaskId, taskLabelMap]);
+
   function onDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
   }
@@ -520,10 +533,10 @@ export function Board({
         open={openTaskId !== null}
         onOpenChange={(o) => !o && setOpenTaskId(null)}
         task={openTask}
-        taskLabelIds={openTaskId ? taskLabelMap[openTaskId] ?? [] : []}
+        taskLabelIds={openTaskLabelIds}
         members={members}
         labels={labels}
-        comments={openTaskId ? commentsMap[openTaskId] ?? [] : []}
+        comments={openTaskComments}
         currentUserId={currentUser.id}
         slug={slug}
         projectId={projectId}
