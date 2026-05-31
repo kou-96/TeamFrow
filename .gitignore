@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+.env
+.env.local
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# 個人用ノート (面接戦略・カンペ等、コミットしない)
+PORTFOLIO.md
