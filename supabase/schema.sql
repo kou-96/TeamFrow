@@ -1,29 +1,10 @@
--- TeamFlow schema (Supabase SQL Editor で実行)
--- Phase 1: workspaces / members / invitations
-
 -- ============================================================
--- リセット (既存テーブルを全部削除)
+-- TeamFlow — 初期 setup スクリプト
+--   新規 Supabase プロジェクトの SQL Editor に貼り付けて一度 Run するだけで
+--   テーブル / RLS / トリガ / Realtime 設定が全部整います。
+--   既にデータがある DB には流さないでください (テーブルは drop しませんが、
+--   create で衝突します)。
 -- ============================================================
-drop trigger if exists on_auth_user_created on auth.users;
-drop table if exists public.notifications cascade;
-drop table if exists public.task_comments cascade;
-drop table if exists public.task_labels cascade;
-drop table if exists public.labels cascade;
-drop table if exists public.tasks cascade;
-drop table if exists public.projects cascade;
-drop table if exists public.workspace_invitations cascade;
-drop table if exists public.workspace_members cascade;
-drop table if exists public.workspaces cascade;
-drop table if exists public.profiles cascade;
-drop function if exists public.handle_new_user() cascade;
-drop function if exists public.accept_invitation(text) cascade;
-drop function if exists public.invitation_info(text) cascade;
-drop function if exists public.create_workspace_for_user(text) cascade;
-drop function if exists public.is_workspace_member(uuid) cascade;
-drop function if exists public.workspace_role_of(uuid) cascade;
-drop function if exists public.is_workspace_admin(uuid) cascade;
-drop type if exists task_status cascade;
-drop type if exists workspace_role cascade;
 
 -- ============================================================
 -- 拡張 / enum
@@ -42,9 +23,6 @@ create table public.profiles (
   theme text check (theme in ('light','dark')),
   created_at timestamptz not null default now()
 );
-
--- 既存環境への追加用 (新規環境ではテーブル定義に含まれるので不要)
-alter table public.profiles add column if not exists theme text check (theme in ('light','dark'));
 
 -- ============================================================
 -- workspaces
@@ -190,7 +168,7 @@ alter table public.notifications replica identity full;
 -- ============================================================
 -- ヘルパー関数 (security definer で RLS 再帰を回避)
 -- ============================================================
-create or replace function public.is_workspace_member(_workspace uuid)
+create function public.is_workspace_member(_workspace uuid)
 returns boolean
 language sql
 stable
@@ -203,7 +181,7 @@ as $$
   );
 $$;
 
-create or replace function public.is_workspace_admin(_workspace uuid)
+create function public.is_workspace_admin(_workspace uuid)
 returns boolean
 language sql
 stable
@@ -218,7 +196,7 @@ as $$
   );
 $$;
 
-create or replace function public.workspace_role_of(_workspace uuid)
+create function public.workspace_role_of(_workspace uuid)
 returns workspace_role
 language sql
 stable
@@ -232,7 +210,7 @@ $$;
 -- ============================================================
 -- 新規ユーザー作成時に profile + デフォルトワークスペースを生成
 -- ============================================================
-create or replace function public.handle_new_user()
+create function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
@@ -247,9 +225,9 @@ begin
 
   insert into public.profiles (id, display_name) values (new.id, _name);
 
-  -- slug は workspace の UUID 先頭 8 桁を使う。
-  -- 名前由来 slug は日本語ユーザーで意味を成さず、orphan 掃除や衝突 suffix も発生していた。
-  -- UUID prefix 方式なら一意性ほぼ自動、ワークスペース名変更で URL が壊れないというメリットも。
+  -- slug は workspace の UUID 先頭 8 桁。
+  -- 名前由来 slug にすると日本語ユーザーで意味を成さず、orphan / 衝突 suffix も発生するため。
+  -- UUID prefix なら一意性ほぼ自動、workspace 名 rename で URL が壊れないというメリットも。
   _workspace_id := gen_random_uuid();
   _slug := substr(_workspace_id::text, 1, 8);
 
@@ -263,7 +241,6 @@ begin
 end;
 $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
@@ -271,7 +248,7 @@ create trigger on_auth_user_created
 -- ============================================================
 -- 招待関連 RPC (token はランダムなので RLS と別経路で読む)
 -- ============================================================
-create or replace function public.invitation_info(_token text)
+create function public.invitation_info(_token text)
 returns table (
   workspace_id uuid,
   workspace_name text,
@@ -291,9 +268,12 @@ as $$
   where i.token = _token;
 $$;
 
--- ワークスペースを作成し、作成者を owner として登録する RPC
+-- ============================================================
+-- ワークスペース作成 RPC
 -- security definer で RLS をバイパスし、認証チェックは関数内部で行う
-create or replace function public.create_workspace_for_user(_name text)
+-- (@supabase/ssr で auth.uid() が INSERT 時に NULL になる症状の回避策)
+-- ============================================================
+create function public.create_workspace_for_user(_name text)
 returns table (workspace_id uuid, workspace_slug text)
 language plpgsql
 security definer
@@ -322,7 +302,10 @@ begin
 end;
 $$;
 
-create or replace function public.accept_invitation(_token text)
+-- ============================================================
+-- 招待受諾 RPC
+-- ============================================================
+create function public.accept_invitation(_token text)
 returns table (workspace_slug text)
 language plpgsql
 security definer
@@ -382,42 +365,34 @@ alter table public.task_comments enable row level security;
 alter table public.notifications enable row level security;
 
 -- profiles
-drop policy if exists "profiles_select_all" on public.profiles;
 create policy "profiles_select_all"
   on public.profiles for select using (true);
 
-drop policy if exists "profiles_update_self" on public.profiles;
 create policy "profiles_update_self"
   on public.profiles for update using (auth.uid() = id);
 
 -- workspaces
-drop policy if exists "workspaces_select_members" on public.workspaces;
 create policy "workspaces_select_members"
   on public.workspaces for select
   using (public.is_workspace_member(id));
 
-drop policy if exists "workspaces_insert_auth" on public.workspaces;
 create policy "workspaces_insert_auth"
   on public.workspaces for insert
   with check (auth.uid() is not null);
 
-drop policy if exists "workspaces_update_admin" on public.workspaces;
 create policy "workspaces_update_admin"
   on public.workspaces for update
   using (public.is_workspace_admin(id));
 
-drop policy if exists "workspaces_delete_owner" on public.workspaces;
 create policy "workspaces_delete_owner"
   on public.workspaces for delete
   using (public.workspace_role_of(id) = 'owner');
 
 -- workspace_members
-drop policy if exists "wm_select_same_workspace" on public.workspace_members;
 create policy "wm_select_same_workspace"
   on public.workspace_members for select
   using (public.is_workspace_member(workspace_id));
 
-drop policy if exists "wm_insert_self_or_admin" on public.workspace_members;
 create policy "wm_insert_self_or_admin"
   on public.workspace_members for insert
   with check (
@@ -425,12 +400,10 @@ create policy "wm_insert_self_or_admin"
     or public.is_workspace_admin(workspace_id)
   );
 
-drop policy if exists "wm_update_owner" on public.workspace_members;
 create policy "wm_update_owner"
   on public.workspace_members for update
   using (public.workspace_role_of(workspace_id) = 'owner');
 
-drop policy if exists "wm_delete_self_or_owner" on public.workspace_members;
 create policy "wm_delete_self_or_owner"
   on public.workspace_members for delete
   using (
@@ -439,21 +412,18 @@ create policy "wm_delete_self_or_owner"
   );
 
 -- workspace_invitations (RLS 上は admin/owner のみ。token 経路は RPC でアクセス)
-drop policy if exists "wi_admin_all" on public.workspace_invitations;
 create policy "wi_admin_all"
   on public.workspace_invitations for all
   using (public.is_workspace_admin(workspace_id))
   with check (public.is_workspace_admin(workspace_id));
 
 -- projects: ワークスペースメンバーは全権
-drop policy if exists "projects_member_all" on public.projects;
 create policy "projects_member_all"
   on public.projects for all
   using (public.is_workspace_member(workspace_id))
   with check (public.is_workspace_member(workspace_id));
 
 -- tasks: 所属プロジェクトのワークスペースメンバーは全権
-drop policy if exists "tasks_member_all" on public.tasks;
 create policy "tasks_member_all"
   on public.tasks for all
   using (
@@ -470,14 +440,12 @@ create policy "tasks_member_all"
   );
 
 -- labels: ワークスペースメンバーは全権
-drop policy if exists "labels_member_all" on public.labels;
 create policy "labels_member_all"
   on public.labels for all
   using (public.is_workspace_member(workspace_id))
   with check (public.is_workspace_member(workspace_id));
 
 -- task_labels: 所属プロジェクトのワークスペースメンバーは全権
-drop policy if exists "task_labels_member_all" on public.task_labels;
 create policy "task_labels_member_all"
   on public.task_labels for all
   using (
@@ -496,7 +464,6 @@ create policy "task_labels_member_all"
   );
 
 -- task_comments: 所属プロジェクトのワークスペースメンバーは全権、削除は本人のみ
-drop policy if exists "task_comments_select_member" on public.task_comments;
 create policy "task_comments_select_member"
   on public.task_comments for select
   using (
@@ -507,7 +474,6 @@ create policy "task_comments_select_member"
     )
   );
 
-drop policy if exists "task_comments_insert_member" on public.task_comments;
 create policy "task_comments_insert_member"
   on public.task_comments for insert
   with check (
@@ -519,18 +485,15 @@ create policy "task_comments_insert_member"
     )
   );
 
-drop policy if exists "task_comments_delete_self" on public.task_comments;
 create policy "task_comments_delete_self"
   on public.task_comments for delete
   using (auth.uid() = user_id);
 
 -- notifications: 自分宛のものを参照/更新/削除。挿入は同じ workspace のメンバーが行える
-drop policy if exists "notifications_select_self" on public.notifications;
 create policy "notifications_select_self"
   on public.notifications for select
   using (auth.uid() = user_id);
 
-drop policy if exists "notifications_insert_workspace_member" on public.notifications;
 create policy "notifications_insert_workspace_member"
   on public.notifications for insert
   with check (
@@ -543,13 +506,11 @@ create policy "notifications_insert_workspace_member"
     )
   );
 
-drop policy if exists "notifications_update_self" on public.notifications;
 create policy "notifications_update_self"
   on public.notifications for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
-drop policy if exists "notifications_delete_self" on public.notifications;
 create policy "notifications_delete_self"
   on public.notifications for delete
   using (auth.uid() = user_id);
@@ -557,14 +518,6 @@ create policy "notifications_delete_self"
 -- ============================================================
 -- Realtime: tasks, task_comments, notifications を購読可能に
 -- ============================================================
-do $$ begin
-  alter publication supabase_realtime add table public.tasks;
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  alter publication supabase_realtime add table public.task_comments;
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  alter publication supabase_realtime add table public.notifications;
-exception when duplicate_object then null; end $$;
+alter publication supabase_realtime add table public.tasks;
+alter publication supabase_realtime add table public.task_comments;
+alter publication supabase_realtime add table public.notifications;
