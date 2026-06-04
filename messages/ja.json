@@ -8,6 +8,7 @@
     "invalid-callback": "認証コールバックが不正です",
     "auth-failed": "認証に失敗しました",
     "not_authenticated": "ログインが必要です",
+    "last-owner-cannot-leave": "最後のオーナーは脱退できません。先に別のメンバーをオーナーに昇格させるか、ワークスペース自体を削除してください。",
     "invitation_not_found": "招待が見つかりません",
     "invitation_expired": "招待リンクの期限が切れています",
     "Invalid login credentials": "メールアドレスまたはパスワードが正しくありません",
@@ -26,6 +27,7 @@
   "common": {
     "appName": "TeamFlow",
     "logout": "ログアウト",
+    "userMenu": "メニュー",
     "you": "あなた",
     "close": "閉じる",
     "back": "戻る",
@@ -33,6 +35,7 @@
     "add": "追加",
     "create": "作成",
     "delete": "削除",
+    "edit": "編集",
     "save": "保存",
     "loading": "読み込み中..."
   },
@@ -68,6 +71,14 @@
     "loginTitle": "ログイン",
     "loginSubtitle": "TeamFlow にログインします",
     "loginButton": "ログイン",
+    "logoutConfirm": "ログアウトしますか?",
+    "logoutConfirmDescription": "再度ログインが必要になります。",
+    "profile": "プロフィール",
+    "profileEditTitle": "プロフィールを編集",
+    "profileNameLabel": "表示名",
+    "theme": "テーマ",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
     "signupTitle": "新規登録",
     "signupSubtitle": "TeamFlow を始めましょう",
     "signupButton": "登録する",
@@ -105,7 +116,9 @@
     "noAccessDescription": "ワークスペースから削除されたか、招待が取り消されたか、または存在しない URL の可能性があります。",
     "selectPrompt": "ワークスペース選択",
     "noWorkspaces": "ワークスペースなし",
-    "createOrList": "ワークスペース一覧/作成"
+    "createOrList": "ワークスペース一覧/作成",
+    "delete": "ワークスペースを削除",
+    "deleteConfirm": "本当に削除しますか? このワークスペースとすべてのプロジェクト・タスク・メンバーが削除されます。"
   },
   "dashboard": {
     "role": "ロール",

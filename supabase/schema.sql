@@ -18,6 +18,7 @@ drop table if exists public.profiles cascade;
 drop function if exists public.handle_new_user() cascade;
 drop function if exists public.accept_invitation(text) cascade;
 drop function if exists public.invitation_info(text) cascade;
+drop function if exists public.create_workspace_for_user(text) cascade;
 drop function if exists public.is_workspace_member(uuid) cascade;
 drop function if exists public.workspace_role_of(uuid) cascade;
 drop function if exists public.is_workspace_admin(uuid) cascade;
@@ -38,8 +39,12 @@ create type workspace_role as enum ('owner', 'admin', 'member');
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
+  theme text check (theme in ('light','dark')),
   created_at timestamptz not null default now()
 );
+
+-- 既存環境への追加用 (新規環境ではテーブル定義に含まれるので不要)
+alter table public.profiles add column if not exists theme text check (theme in ('light','dark'));
 
 -- ============================================================
 -- workspaces
@@ -235,28 +240,21 @@ set search_path = public
 as $$
 declare
   _name text;
-  _base_slug text;
   _slug text;
   _workspace_id uuid;
-  _suffix int;
 begin
   _name := coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1));
 
   insert into public.profiles (id, display_name) values (new.id, _name);
 
-  _base_slug := lower(regexp_replace(coalesce(_name, 'workspace'), '[^a-zA-Z0-9]+', '-', 'g'));
-  _base_slug := trim(both '-' from _base_slug);
-  if _base_slug = '' then _base_slug := 'workspace'; end if;
-  _slug := _base_slug;
-  _suffix := 1;
-  while exists (select 1 from public.workspaces where slug = _slug) loop
-    _suffix := _suffix + 1;
-    _slug := _base_slug || '-' || _suffix;
-  end loop;
+  -- slug は workspace の UUID 先頭 8 桁を使う。
+  -- 名前由来 slug は日本語ユーザーで意味を成さず、orphan 掃除や衝突 suffix も発生していた。
+  -- UUID prefix 方式なら一意性ほぼ自動、ワークスペース名変更で URL が壊れないというメリットも。
+  _workspace_id := gen_random_uuid();
+  _slug := substr(_workspace_id::text, 1, 8);
 
-  insert into public.workspaces (name, slug)
-  values (_name || 'のワークスペース', _slug)
-  returning id into _workspace_id;
+  insert into public.workspaces (id, name, slug)
+  values (_workspace_id, _name || 'のワークスペース', _slug);
 
   insert into public.workspace_members (workspace_id, user_id, role)
   values (_workspace_id, new.id, 'owner');
@@ -291,6 +289,37 @@ as $$
   from public.workspace_invitations i
   join public.workspaces w on w.id = i.workspace_id
   where i.token = _token;
+$$;
+
+-- ワークスペースを作成し、作成者を owner として登録する RPC
+-- security definer で RLS をバイパスし、認証チェックは関数内部で行う
+create or replace function public.create_workspace_for_user(_name text)
+returns table (workspace_id uuid, workspace_slug text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _user uuid;
+  _slug text;
+  _ws_id uuid;
+begin
+  _user := auth.uid();
+  if _user is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  -- slug は UUID prefix 方式 (handle_new_user と同じポリシー)
+  _ws_id := gen_random_uuid();
+  _slug := substr(_ws_id::text, 1, 8);
+
+  insert into public.workspaces (id, name, slug) values (_ws_id, _name, _slug);
+
+  insert into public.workspace_members (workspace_id, user_id, role)
+  values (_ws_id, _user, 'owner');
+
+  return query select _ws_id, _slug;
+end;
 $$;
 
 create or replace function public.accept_invitation(_token text)

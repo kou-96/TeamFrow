@@ -8,6 +8,7 @@
     "invalid-callback": "Invalid auth callback",
     "auth-failed": "Authentication failed",
     "not_authenticated": "Login required",
+    "last-owner-cannot-leave": "The last owner cannot leave. Promote another member to owner first, or delete the workspace entirely.",
     "invitation_not_found": "Invitation not found",
     "invitation_expired": "This invitation link has expired",
     "Invalid login credentials": "Email or password is incorrect",
@@ -26,6 +27,7 @@
   "common": {
     "appName": "TeamFlow",
     "logout": "Logout",
+    "userMenu": "Menu",
     "you": "you",
     "close": "Close",
     "back": "Back",
@@ -33,6 +35,7 @@
     "add": "Add",
     "create": "Create",
     "delete": "Delete",
+    "edit": "Edit",
     "save": "Save",
     "loading": "Loading..."
   },
@@ -68,6 +71,14 @@
     "loginTitle": "Login",
     "loginSubtitle": "Sign in to TeamFlow",
     "loginButton": "Login",
+    "logoutConfirm": "Sign out?",
+    "logoutConfirmDescription": "You'll need to log in again to access your workspaces.",
+    "profile": "Profile",
+    "profileEditTitle": "Edit profile",
+    "profileNameLabel": "Display name",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
     "signupTitle": "Sign up",
     "signupSubtitle": "Get started with TeamFlow",
     "signupButton": "Create account",
@@ -105,7 +116,9 @@
     "noAccessDescription": "You may have been removed, the invitation may have been revoked, or the URL may not exist.",
     "selectPrompt": "Select workspace",
     "noWorkspaces": "No workspaces",
-    "createOrList": "Workspaces / Create"
+    "createOrList": "Workspaces / Create",
+    "delete": "Delete workspace",
+    "deleteConfirm": "Are you sure? This will permanently delete this workspace and all its projects, tasks, and members."
   },
   "dashboard": {
     "role": "Role",
