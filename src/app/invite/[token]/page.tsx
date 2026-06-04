@@ -38,7 +38,7 @@ export default async function InvitePage({
 
   if (!info) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
+      <main className="flex min-h-dvh items-center justify-center px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">{t("notFoundTitle")}</CardTitle>
@@ -60,7 +60,7 @@ export default async function InvitePage({
   const accept = acceptInvitation.bind(null, token);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="flex min-h-dvh items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">

@@ -16,10 +16,10 @@ export default async function Home() {
   const t = await getTranslations("landing");
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative min-h-dvh overflow-hidden">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-slate-100 via-background to-background" />
 
-      <div className="container flex min-h-screen flex-col items-center justify-center gap-12 px-6 py-16 text-center">
+      <div className="container flex min-h-dvh flex-col items-center justify-center gap-12 px-6 py-16 text-center">
         <div className="space-y-5 max-w-2xl">
           <span className="inline-flex items-center rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
             {t("tagline")}
