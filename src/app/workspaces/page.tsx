@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Info, Users, Plus } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
+import { DeleteWorkspaceButton } from "@/components/delete-workspace-button";
 import {
   Card,
   CardContent,
@@ -68,22 +69,43 @@ export default async function WorkspacesPage({
               <ul className="grid gap-3 sm:grid-cols-2">
                 {workspaces.map(({ ws, role }) => (
                   <li key={ws.id}>
-                    <Link href={`/workspaces/${ws.slug}`} className="block">
-                      <Card className="hover:border-primary/50 hover:shadow-md transition h-full">
-                        <CardHeader>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                              <Users className="h-5 w-5" />
-                            </div>
-                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <Card className="group hover:border-primary/50 hover:shadow-md transition h-full relative">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-2">
+                          <Link
+                            href={`/workspaces/${ws.slug}`}
+                            className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                          >
+                            <Users className="h-5 w-5" />
+                          </Link>
+                          <div className="relative h-7 min-w-[60px] flex items-center justify-end">
+                            <span
+                              className={
+                                "text-xs uppercase tracking-wide text-muted-foreground transition-opacity " +
+                                (role === "owner"
+                                  ? "group-hover:opacity-0 group-focus-within:opacity-0"
+                                  : "")
+                              }
+                            >
                               {tr(role)}
                             </span>
+                            {role === "owner" && (
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                                <DeleteWorkspaceButton
+                                  id={ws.id}
+                                  title={ws.name}
+                                  confirmMessage={t("deleteConfirm")}
+                                  ariaLabel={t("delete")}
+                                />
+                              </div>
+                            )}
                           </div>
-                          <CardTitle className="text-base pt-2">{ws.name}</CardTitle>
-                          <CardDescription className="text-xs">/{ws.slug}</CardDescription>
-                        </CardHeader>
-                      </Card>
-                    </Link>
+                        </div>
+                        <Link href={`/workspaces/${ws.slug}`} className="block pt-2">
+                          <CardTitle className="text-base">{ws.name}</CardTitle>
+                        </Link>
+                      </CardHeader>
+                    </Card>
                   </li>
                 ))}
               </ul>

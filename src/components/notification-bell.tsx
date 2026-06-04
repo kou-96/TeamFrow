@@ -192,7 +192,7 @@ export function NotificationBell({ currentUserId }: { currentUserId: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-md border bg-popover shadow-md z-50">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-md border bg-popover shadow-md z-50">
           <div className="flex items-center justify-between border-b px-3 py-2">
             <h3 className="text-sm font-semibold">{t("title")}</h3>
             {unread > 0 && (

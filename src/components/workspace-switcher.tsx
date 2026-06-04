@@ -49,7 +49,7 @@ export function WorkspaceSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="truncate max-w-[180px]">{label}</span>
+        <span className="truncate max-w-[110px] sm:max-w-[180px]">{label}</span>
         <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
 

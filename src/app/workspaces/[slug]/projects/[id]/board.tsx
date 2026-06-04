@@ -496,17 +496,23 @@ export function Board({
   };
 
   const columns = (
-    <div className="grid gap-4 md:grid-cols-3">
-      {order.map((status) => (
-        <Column
-          key={status}
-          status={status}
-          label={columnLabels[status]}
-          tone={COLUMN_TONES[status]}
-          tasks={grouped[status]}
-          ctx={ctx}
-        />
-      ))}
+    <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto sm:overflow-visible">
+      <div className="flex sm:grid gap-4 sm:grid-cols-3 snap-x snap-mandatory sm:snap-none pb-2 sm:pb-0">
+        {order.map((status) => (
+          <div
+            key={status}
+            className="snap-start shrink-0 w-[85vw] sm:w-auto"
+          >
+            <Column
+              status={status}
+              label={columnLabels[status]}
+              tone={COLUMN_TONES[status]}
+              tasks={grouped[status]}
+              ctx={ctx}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 
