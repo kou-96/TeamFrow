@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -27,6 +28,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -55,5 +57,25 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* iOS のオーバースクロール時のホワイトバウンス抑制 */
+    overscroll-behavior-y: none;
+  }
+  /* iOS Safari は font-size < 16px の input にフォーカスすると自動でズームする。
+     モバイル時は 16px 以上に固定して防止 */
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+  /* native <select> の popup をテーマに追従させる
+     (一部ブラウザは color-scheme を root だけでは option list に反映しないので option 自体も明示) */
+  .dark select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
   }
 }
