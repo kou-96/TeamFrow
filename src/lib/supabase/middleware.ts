@@ -3,7 +3,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./types";
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
+  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isPublic =
+    isAuthRoute ||
+    pathname === "/" ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/invite");
+
+  // public ルートかどうかを RSC (layout) に伝えて、テーマ判定で使う
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-is-public-route", isPublic ? "1" : "0");
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +27,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
@@ -27,11 +39,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-  const isPublic =
-    isAuthRoute || pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/invite");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

@@ -1,10 +1,12 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeNext } from "@/lib/next-path";
+import { syncThemeCookieFromProfile } from "@/lib/sync-theme";
+import { THEME_COOKIE } from "@/lib/theme";
 
 async function getOrigin() {
   const h = await headers();
@@ -21,12 +23,19 @@ export async function login(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const next = sanitizeNext(formData.get("next"), "/workspaces");
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) {
     const params = new URLSearchParams({ error: error.message });
     if (next !== "/workspaces") params.set("next", next);
     redirect(`/login?${params.toString()}`);
+  }
+
+  if (signInData.user) {
+    await syncThemeCookieFromProfile(supabase, signInData.user.id);
   }
 
   revalidatePath("/", "layout");
@@ -70,5 +79,10 @@ export async function signup(formData: FormData) {
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+
+  // theme cookie をクリア (次ユーザー / 未ログイン画面に前ユーザーの設定が残らないように)
+  const c = await cookies();
+  c.delete(THEME_COOKIE);
+
   redirect("/login");
 }

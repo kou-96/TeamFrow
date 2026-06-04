@@ -6,9 +6,24 @@ export type Database = {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; display_name: string | null; created_at: string };
-        Insert: { id: string; display_name?: string | null; created_at?: string };
-        Update: { id?: string; display_name?: string | null; created_at?: string };
+        Row: {
+          id: string;
+          display_name: string | null;
+          theme: "light" | "dark" | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          display_name?: string | null;
+          theme?: "light" | "dark" | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          display_name?: string | null;
+          theme?: "light" | "dark" | null;
+          created_at?: string;
+        };
         Relationships: [];
       };
       workspaces: {
@@ -264,6 +279,10 @@ export type Database = {
       accept_invitation: {
         Args: { _token: string };
         Returns: { workspace_slug: string }[];
+      };
+      create_workspace_for_user: {
+        Args: { _name: string };
+        Returns: { workspace_id: string; workspace_slug: string }[];
       };
       is_workspace_member: {
         Args: { _workspace: string };
