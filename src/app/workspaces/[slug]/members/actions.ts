@@ -57,8 +57,17 @@ export async function revokeInvitation(slug: string, formData: FormData) {
   revalidatePath(`/workspaces/${slug}/members`);
 }
 
+async function countOwners(supabase: Awaited<ReturnType<typeof createClient>>, workspaceId: string) {
+  const { count } = await supabase
+    .from("workspace_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("role", "owner");
+  return count ?? 0;
+}
+
 export async function changeMemberRole(slug: string, formData: FormData) {
-  const { workspace, role: myRole } = await requireWorkspace(slug);
+  const { workspace, role: myRole, user } = await requireWorkspace(slug);
   if (myRole !== "owner") {
     redirect(`/workspaces/${slug}/members?error=permission-denied`);
   }
@@ -72,6 +81,15 @@ export async function changeMemberRole(slug: string, formData: FormData) {
   if (!userId) return;
 
   const supabase = await createClient();
+
+  // 自分が最後の Owner で、自分自身を Owner 以外に降格しようとしている場合は防止
+  if (userId === user.id && newRole !== "owner") {
+    const owners = await countOwners(supabase, workspace.id);
+    if (owners <= 1) {
+      redirect(`/workspaces/${slug}/members?error=last-owner-cannot-leave`);
+    }
+  }
+
   const { error } = await supabase
     .from("workspace_members")
     .update({ role: newRole })
@@ -97,6 +115,22 @@ export async function removeMember(slug: string, formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  // 削除対象が Owner で、最後の Owner なら防止 (自分でも他人でも)
+  const { data: targetMember } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspace.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (targetMember?.role === "owner") {
+    const owners = await countOwners(supabase, workspace.id);
+    if (owners <= 1) {
+      redirect(`/workspaces/${slug}/members?error=last-owner-cannot-leave`);
+    }
+  }
+
   const { error } = await supabase
     .from("workspace_members")
     .delete()
