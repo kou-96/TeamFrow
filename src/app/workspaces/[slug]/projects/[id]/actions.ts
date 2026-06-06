@@ -75,22 +75,6 @@ export async function deleteTask(slug: string, projectId: string, taskId: string
   revalidatePath(`/workspaces/${slug}/projects/${projectId}`);
 }
 
-export async function updateTaskTitle(
-  slug: string,
-  projectId: string,
-  taskId: string,
-  title: string
-) {
-  const trimmed = title.trim();
-  if (!trimmed) return;
-
-  const { supabase } = await ensureProjectInWorkspace(slug, projectId);
-  const { error } = await supabase.from("tasks").update({ title: trimmed }).eq("id", taskId);
-
-  if (error) failRedirect(slug, projectId, error.message);
-  revalidatePath(`/workspaces/${slug}/projects/${projectId}`);
-}
-
 export async function updateTaskDescription(
   slug: string,
   projectId: string,

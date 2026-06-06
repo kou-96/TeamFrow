@@ -12,7 +12,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/date-picker";
 import { cn } from "@/lib/utils";
@@ -25,7 +24,6 @@ import {
   updateTaskAssignee,
   updateTaskDescription,
   updateTaskDueDate,
-  updateTaskTitle,
 } from "./actions";
 import { CommentsSection, type CommentEntry } from "./comments";
 
@@ -61,13 +59,11 @@ export function TaskDetailModal({
   const [, startTransition] = useTransition();
 
   // ローカル編集状態 (タスクが変わったら同期)
-  const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [editingDescription, setEditingDescription] = useState(false);
 
   useEffect(() => {
     if (task) {
-      setTitle(task.title);
       setDescription(task.description ?? "");
       setEditingDescription(false);
     }
@@ -80,16 +76,6 @@ export function TaskDetailModal({
   const assignedLabelIds = new Set(taskLabelIds);
 
   if (!task) return null;
-
-  function commitTitle() {
-    if (!task) return;
-    const trimmed = title.trim();
-    if (!trimmed || trimmed === task.title) {
-      setTitle(task.title);
-      return;
-    }
-    startTransition(() => updateTaskTitle(slug, projectId, task.id, trimmed));
-  }
 
   function commitDescription() {
     if (!task) return;
@@ -137,21 +123,8 @@ export function TaskDetailModal({
         <DialogTitle className="sr-only">{t("detailTitle")}</DialogTitle>
         <DialogDescription className="sr-only">{t("detailTitle")}</DialogDescription>
 
-        {/* タイトル */}
-        <div className="pr-8">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={commitTitle}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.currentTarget.blur();
-              }
-            }}
-            className="text-lg font-semibold !h-auto border-transparent shadow-none focus-visible:border-input px-2"
-          />
-        </div>
+        {/* タイトル (読み取り専用) */}
+        <h2 className="pr-8 text-lg font-semibold break-words">{task.title}</h2>
 
         <div className="grid gap-6 md:grid-cols-[1fr_220px]">
           {/* メイン: 説明 */}
@@ -199,7 +172,7 @@ export function TaskDetailModal({
                 </div>
               </div>
             ) : description ? (
-              <div className="prose prose-sm max-w-none rounded-md border bg-muted/30 p-3 leading-relaxed">
+              <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border bg-muted/30 p-3 leading-relaxed">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
               </div>
             ) : (
