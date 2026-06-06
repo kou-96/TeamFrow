@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { AsciiInput } from "@/components/ui/ascii-input";
+import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { DismissibleError } from "@/components/dismissible-error";
@@ -39,7 +39,7 @@ export default async function LoginPage({
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t("email")}</Label>
-              <AsciiInput id="email" name="email" type="email" required autoComplete="email" />
+              <Input id="email" name="email" type="email" required autoComplete="email" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">{t("password")}</Label>
