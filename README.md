@@ -43,8 +43,6 @@
 
 ## 📸 スクリーンショット
 
-> 撮影後 `docs/screenshots/` に配置すると下記が表示されます。
-
 | カンバンボード | タスク詳細 (Markdown + 担当者 + ラベル + コメント) |
 |---|---|
 | ![board](docs/screenshots/board.png) | ![task-detail](docs/screenshots/task-detail.png) |
